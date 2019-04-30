@@ -1,0 +1,61 @@
+#!/usr/bin/env ruby
+
+# NOTE: this script uses the gcs script to get the details of the callsign
+# and it EXPECTS the gcs script to be in the same directory as this script
+# if you put gcs into another directory, then the "gcs_path" variable
+
+# this script interrogates js8call to find out what callsign is currently SELECTED
+# and automatically calls gcs, to find out the details.
+# this works just fine on the Raspberry Pi
+
+# usage: js8gcs [-n]
+
+require 'socket'
+require 'json'
+
+opt = ARGV[0]
+
+gcs_path = "./"
+host = 'localhost'
+port = 2237
+s = UDPSocket.new
+s.bind(host, port)
+
+jstr = '{"params": {}, "type": "RX.GET_CALL_SELECTED"}' 
+current_cs = ""
+# js8call is the client. So act as a server ought to and recv connection
+# from client
+
+data, client = s.recvfrom(1024)
+
+# now client[1] is the socket of the client
+# so send the jstr to client[1] in a infinite loop
+loop do
+  s.send(jstr, 0, host, client[1])
+
+  # now get data from a connection
+
+  data, client = s.recvfrom(512)
+
+  # convert to a hash and print the "value"
+  begin
+    jdata = JSON.parse(data)
+  rescue
+    next
+  end
+  if jdata["value"] != current_cs and jdata["type"] == "RX.CALL_SELECTED"
+    # I have a gcs script that prints out pertinent info
+    # given a callsign
+
+    #Set selected callsign to current callsign
+    current_cs = jdata["value"]
+    
+    if current_cs != ""
+      unless opt
+        puts `#{gcs_path}/gcs -n #{current_cs}`
+      else
+        puts current_cs 
+      end
+    end
+  end
+end

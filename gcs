@@ -1,0 +1,139 @@
+#!/usr/bin/env ruby
+
+# Script to get callsign data
+# usage: gcs callsign
+#
+# this ruby script uses nokogiri
+# which must be installed:
+#    sudo gem install nokogiri notify dx-grid
+#
+#    prerequisite for nokogiri is ruby-dev
+#    install that by: sudo apt-get install ruby-dev
+
+
+require 'open-uri'
+require 'nokogiri'
+require 'notify'
+require 'optparse'
+require 'dx/grid'
+
+#Get command line options
+options = {}
+optparse = OptionParser.new do |opts|
+  opts.banner = "Usage gcs [options] callsign"
+  opts.on('-n', '--notify', 'Enable OS notifications') do |n|
+    options[:notify] = n
+  end
+  opts.on('-g GRID', '--my-grid=GRID', 'Get distance and bearing from your grid') do |g|
+    options[:grid] = g
+  end
+end.parse!
+
+baseurl = 'https://www.hamqth.com/'
+cs = ARGV[0].upcase
+url = baseurl + cs
+miles = 0.00062137
+km = 0.001
+
+printf "Callsign: %s\n", cs
+
+def mkdata(tr)
+  itxt = tr.text
+  data = itxt.lstrip.rstrip.split(':')
+end
+
+def dist_bearing(home_grid, remote_grid)
+  #Break grid in to long/lat
+  home = DX::Grid.decode(home_grid)
+  home_lon = home[0]
+  home_lat = home[1]
+  remote = DX::Grid.decode(remote_grid)
+  remote_lon = remote[0]
+  remote_lat = remote[1]
+  #Get base vars for distance
+  radis = 6371000 #Radis of earth
+  home_lat_rad = (home_lat/180)* Math::PI
+  remote_lat_rad = (home_lat/180)* Math::PI
+  delta_lat_rad = ((remote_lat - home_lat)/180)* Math::PI
+  delta_lon_rad = ((remote_lon - home_lon)/180)* Math::PI
+  #Do the math to find distance
+  a = Math.sin(delta_lat_rad/2) * Math.sin(delta_lat_rad/2) + Math.cos(home_lat_rad) * Math.cos(remote_lat_rad) * Math.sin(delta_lon_rad/2) * Math.sin(delta_lon_rad/2)
+  c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+  distance = radis * c
+  #Get bearing
+  y = Math.sin(home_lat - remote_lat) * Math.cos(remote_lat)
+  x = Math.cos(home_lat) * Math.sin(remote_lat) - Math.sin(home_lat) * Math.cos(remote_lat) * Math.cos(home_lat - remote_lat)
+  bearing_rad = Math.atan2(x, y)
+  bearing_deg = (bearing_rad)
+  return distance
+end
+
+doc = Nokogiri::HTML(open(url))
+data = doc.css('tr')
+grid = ""
+notificaton = ""
+city, state = "", ""
+
+# make it so we don't need -g if and only if GCSGRID is set as env var
+unless options.include? :grid
+  unless ENV['GCSGRID'].nil?
+    options[:grid] = ENV['GCSGRID']
+  end
+end
+
+data.each {|d|
+  case d.text
+  when /Name:/
+    data = mkdata(d)
+    printf "%-8s : %-20s\n", data[0], data[1]
+    notificaton.concat("#{data[0]}\t: #{data[1]}\n")
+  when /QTH:/
+    data = mkdata(d)
+    printf "%-8s : %-20s\n", data[0], data[1]
+    notificaton.concat("#{data[0]}\t: #{data[1]}\n")
+    city = data[1]
+  when /State:/
+    data = mkdata(d)
+    printf "%-8s : %-20s\n", data[0], data[1]
+    notificaton.concat("#{data[0]}\t: #{data[1]}\n")
+    state = data[1]
+  when /Country:/
+    data = mkdata(d)
+    printf "%-8s : %-20s\n", data[0], data[1]
+    notificaton.concat("#{data[0]}\t: #{data[1]}\n")
+  when /Grid:/
+    data = mkdata(d)
+    grid = data[1]
+    if options[:grid]
+       distance = dist_bearing(options[:grid], grid)
+       distance = (distance * miles).round
+       printf "%-8s : %s (%s Miles)\n", data[0], data[1], distance
+       notificaton.concat("#{data[0]}\t: #{data[1]} (#{distance} Miles)\n")
+    else
+      printf "%-8s : %s\n", data[0], data[1]
+      notificaton.concat("#{data[0]}\t: #{data[1]}\n")
+    end
+  end
+}
+
+qth = city + state
+qth = qth.gsub ' ', '+'
+
+puts " "
+worked = `awk -F, '{print $1, $5}' $HOME/.local/share/JS8Call/js8call.log | grep -i #{cs}`
+if worked == ""
+  worked = "No"
+end
+puts "Worked before (JS8): #{worked}"
+if options[:notify]
+  notificaton.concat("Worked before (JS8): #{worked}")
+  notificaton.concat("\n\nmap at: http://maps.google.com?q=#{qth}")
+
+  Notify.notify "Callsign info for #{cs}", notificaton, { app_name: "GCS for JS8Call" }
+end
+
+puts ""
+puts "map at: http://maps.google.com?q=#{qth}"
+
+#can't make this work in current design
+system "xdg-open http://www.levinecentral.com/ham/grid_square.php?Call=#{cs} 2>/dev/null &"
