@@ -120,7 +120,7 @@ qth = city + state
 qth = qth.gsub ' ', '+'
 
 puts " "
-worked = `awk -F, '{print $1, $5}' $HOME/.local/share/JS8Call/js8call.log | grep -i #{cs}`
+worked = `awk -F, '{print $1, $5}' $HOME/.local/share/JS8Call/js8call.log 2>/dev/null | grep -i #{cs}`
 if worked == ""
   worked = "No"
 end
