@@ -21,7 +21,9 @@ port = 2237
 s = UDPSocket.new
 s.bind(host, port)
 
-jstr = '{"params": {}, "type": "RX.GET_CALL_SELECTED"}' 
+jstr = '{"params": {}, "type": "RX.GET_CALL_SELECTED"}'
+get_grid= '{"params": {}, "type": "STATION.GET_GRID"}'
+my_grid = ""
 current_cs = ""
 # js8call is the client. So act as a server ought to and recv connection
 # from client
@@ -31,8 +33,12 @@ data, client = s.recvfrom(1024)
 # now client[1] is the socket of the client
 # so send the jstr to client[1] in a infinite loop
 loop do
-  s.send(jstr, 0, host, client[1])
-
+  if my_grid == ""
+    s.send(get_grid, 0, host, client[1])
+    sleep 1
+  else
+    s.send(jstr, 0, host, client[1])
+  end
   # now get data from a connection
 
   data, client = s.recvfrom(512)
@@ -49,13 +55,15 @@ loop do
 
     #Set selected callsign to current callsign
     current_cs = jdata["value"]
-    
+
     if current_cs != ""
       unless opt
-        puts `#{gcs_path}/gcs -n #{current_cs}`
+        puts `#{gcs_path}/gcs -n #{current_cs} -g #{my_grid}`
       else
-        puts current_cs 
+        puts current_cs
       end
     end
+  elsif jdata["type"] == "STATION.GRID"
+    my_grid = jdata["value"]
   end
 end
