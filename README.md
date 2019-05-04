@@ -2,7 +2,7 @@
 `gcs` is a ruby script that gets the callsign and information about that callsign.
 `js8gcs` runs the gcs script based on what callsign you have selected in js8call.
 
-##Install (Ubuntu/Debian/RPi)
+## Install (Ubuntu/Debian/RPi)
 First install rubygems
 ```
 sudo apt-get install ruby ruby-dev
@@ -18,7 +18,7 @@ Make scripts executable
 chmod +x gcs; chmod +x js8gcs
 ```
 
-##Usage (GCS)
+## Usage (GCS)
 For just callsign information from hamqth.com:
 ```
 ./gcs CALLSIGN
@@ -68,7 +68,7 @@ Or you can choose one or all of them.  For example here is all options
 ./gcs w1aw -n -w -g em79
 ```
 
-##Usage (JS8GCS)
+## Usage (JS8GCS)
 First start js8call.  Once js8call is open, in a terminal window start js8gcs
 ```
 ./js8gcs
