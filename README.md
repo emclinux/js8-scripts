@@ -26,7 +26,8 @@ State    : CT
 
 Worked before (JS8): No
 
-map at: http://maps.google.com?q=NewingtonCT```
+map at: http://maps.google.com?q=NewingtonCT
+```
 
 If you would like to have this information in a desktop notification add a -n to the command
 `./gcs -n w1aw`
