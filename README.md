@@ -43,7 +43,8 @@ State    : CT
 
 Worked before (JS8): No
 
-map at: http://maps.google.com?q=NewingtonCT```
+map at: http://maps.google.com?q=NewingtonCT
+```
 
 If you would like to open a webpage like https://qrz.com/db or http://www.levinecentral.com/ham/grid_square.php
 `./gcs -w w1aw`
