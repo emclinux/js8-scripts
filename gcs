@@ -5,17 +5,38 @@
 #
 # this ruby script uses nokogiri
 # which must be installed:
-#    sudo gem install nokogiri notify dx-grid
+#    gem install nokogiri notify dx-grid geocoder
 #
 #    prerequisite for nokogiri is ruby-dev
 #    install that by: sudo apt-get install ruby-dev
 
-
-require 'open-uri'
-require 'nokogiri'
-require 'notify'
-require 'optparse'
-require 'dx/grid'
+begin
+  require 'open-uri'
+  require 'nokogiri'
+  require 'notify'
+  require 'optparse'
+  require 'dx/grid'
+  require 'geocoder'
+rescue LoadError
+  puts "Not all required gems installed.  Tring to install"
+  #Run as sudo as Ubuntu/Debian ruby package doesnt use the best method for gem install permissions.
+  #If you dont want this as sudo then you can chown /var/lib/gem to give your user access or use RVM
+  puts "Running: sudo gem install nokogiri notify dx-grid geocoder"
+  system("sudo gem install nokogiri notify dx-grid geocoder")
+end
+#Second round try of gem loading
+Gem.clear_paths
+begin
+  require 'open-uri'
+  require 'nokogiri'
+  require 'notify'
+  require 'optparse'
+  require 'dx/grid'
+  require 'geocoder'
+rescue LoadError
+  puts "Required gems could not be install.  Please install the following gems and run this script again"
+  puts "Gems needed: okogiri notify dx-grid geocoder"
+end
 
 #Get command line options
 options = {}
@@ -49,27 +70,10 @@ end
 def dist_bearing(home_grid, remote_grid)
   #Break grid in to long/lat
   home = DX::Grid.decode(home_grid)
-  home_lon = home[0]
-  home_lat = home[1]
   remote = DX::Grid.decode(remote_grid)
-  remote_lon = remote[0]
-  remote_lat = remote[1]
-  #Get base vars for distance
-  radis = 6371000 #Radis of earth
-  home_lat_rad = (home_lat/180)* Math::PI
-  remote_lat_rad = (home_lat/180)* Math::PI
-  delta_lat_rad = ((remote_lat - home_lat)/180)* Math::PI
-  delta_lon_rad = ((remote_lon - home_lon)/180)* Math::PI
-  #Do the math to find distance
-  a = Math.sin(delta_lat_rad/2) * Math.sin(delta_lat_rad/2) + Math.cos(home_lat_rad) * Math.cos(remote_lat_rad) * Math.sin(delta_lon_rad/2) * Math.sin(delta_lon_rad/2)
-  c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
-  distance = radis * c
-  #Get bearing
-  y = Math.sin(home_lat - remote_lat) * Math.cos(remote_lat)
-  x = Math.cos(home_lat) * Math.sin(remote_lat) - Math.sin(home_lat) * Math.cos(remote_lat) * Math.cos(home_lat - remote_lat)
-  bearing_rad = Math.atan2(x, y)
-  bearing_deg = (bearing_rad)
-  return distance
+  bearing = Geocoder::Calculations.bearing_between(home, remote)
+  distance = Geocoder::Calculations.distance_between(home, remote)
+  return distance, bearing
 end
 
 doc = Nokogiri::HTML(open(url))
@@ -109,10 +113,12 @@ data.each {|d|
     data = mkdata(d)
     grid = data[1]
     if options[:grid]
-       distance = dist_bearing(options[:grid], grid)
-       distance = (distance * miles).round
-       printf "%-8s : %s (%s Miles)\n", data[0], data[1], distance
-       notificaton.concat("#{data[0]}\t: #{data[1]} (#{distance} Miles)\n")
+       distbearing = dist_bearing(options[:grid], grid)
+       p distbearing
+       distance = distbearing[0].round
+       bearing = distbearing[1].round
+       printf "%-8s : %s (%s Miles @ %s Degrees)\n", data[0], data[1], distance, bearing
+       notificaton.concat("#{data[0]}\t: #{data[1]} (#{distance} Miles @ #{bearing} Degrees)\n")
     else
       printf "%-8s : %s\n", data[0], data[1]
       notificaton.concat("#{data[0]}\t: #{data[1]}\n")
