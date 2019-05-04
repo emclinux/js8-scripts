@@ -27,6 +27,10 @@ optparse = OptionParser.new do |opts|
   opts.on('-g GRID', '--my-grid=GRID', 'Get distance and bearing from your grid') do |g|
     options[:grid] = g
   end
+    opts.on('-w', '--web', 'Enable webpage open') do |w|
+    options[:web] = w
+  end
+
 end.parse!
 
 baseurl = 'https://www.hamqth.com/'
@@ -135,5 +139,6 @@ end
 puts ""
 puts "map at: http://maps.google.com?q=#{qth}"
 
-#can't make this work in current design
-system "xdg-open http://www.levinecentral.com/ham/grid_square.php?Call=#{cs} 2>/dev/null &"
+if options[:web]
+  system "xdg-open https://www.qrz.com/db/#{cs} 2>/dev/null &"
+end
