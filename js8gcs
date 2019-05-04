@@ -58,7 +58,7 @@ loop do
 
     if current_cs != ""
       unless opt
-        puts `#{gcs_path}/gcs -n #{current_cs} -g #{my_grid}`
+        puts `#{gcs_path}/gcs -n #{current_cs} -g #{my_grid} -w`
       else
         puts current_cs
       end
