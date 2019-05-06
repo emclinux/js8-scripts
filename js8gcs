@@ -64,6 +64,6 @@ loop do
       end
     end
   elsif jdata["type"] == "STATION.GRID"
-    my_grid = jdata["value"]
+    my_grid = jdata["value"][0,4]
   end
 end
