@@ -146,5 +146,5 @@ puts ""
 puts "map at: http://maps.google.com?q=#{qth}"
 
 if options[:web]
-  system "xdg-open https://www.qrz.com/db/#{cs} 2>/dev/null &"
+  system "xdg-open https://www.qrz.com/db/#{cs} >/dev/null 2>&1 &"
 end
