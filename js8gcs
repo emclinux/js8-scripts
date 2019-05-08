@@ -56,7 +56,7 @@ loop do
     #Set selected callsign to current callsign
     current_cs = jdata["value"]
 
-    if current_cs != ""
+    if current_cs != "" and current_cs[0] != '@'
       unless opt
         puts `#{gcs_path}/gcs -n #{current_cs} -g #{my_grid} -w`
       else
