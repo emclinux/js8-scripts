@@ -12,10 +12,11 @@
 
 require 'socket'
 require 'json'
+require 'mkmf'
 
 opt = ARGV[0]
 
-gcs_path = "./"
+gcs_path = find_executable "gcs"
 host = 'localhost'
 port = 2237
 s = UDPSocket.new
@@ -58,7 +59,7 @@ loop do
 
     if current_cs != "" and current_cs[0] != '@'
       unless opt
-        puts `#{gcs_path}/gcs -n #{current_cs} -g #{my_grid} -w`
+        puts `#{gcs_path} -n #{current_cs} -g #{my_grid} -w`
       else
         puts current_cs
       end
